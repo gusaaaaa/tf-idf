@@ -48,7 +48,7 @@ def tf(word, document):
   return (freq(word,document) / float(wordCount(document)))
 
 def idf(word, documentList):
-  return math.log(len(documentList) / numDocsContaining(word,documentList))
+  return math.log(len(documentList) / float(numDocsContaining(word,documentList)))
 
 def tfidf(word, document, documentList):
   return (tf(word,document) * idf(word,documentList))
