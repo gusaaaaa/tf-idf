@@ -31,36 +31,88 @@
 import math
 from operator import itemgetter
 
+from os import listdir
+from os.path import isfile, join
+
+import pdb
+
 def freq(word, document):
-  return document.split(None).count(word)
+    return document.split(None).count(word)
 
 def wordCount(document):
-  return len(document.split(None))
+    return len(document.split(None))
 
 def numDocsContaining(word,documentList):
-  count = 0
-  for document in documentList:
-    if freq(word,document) > 0:
-      count += 1
-  return count
+    count = 0
+    for document in documentList:
+        if freq(word,document) > 0:
+            count += 1
+    return count
 
 def tf(word, document):
-  return (freq(word,document) / float(wordCount(document)))
+    return (freq(word,document) / float(wordCount(document)))
 
 def idf(word, documentList):
-  return math.log(len(documentList) / float(numDocsContaining(word,documentList)))
+    tf = float(numDocsContaining(word,documentList))
+    if tf == 0:
+        return 0
+    else:
+        return math.log(len(documentList) / tf)
 
 def tfidf(word, document, documentList):
+    # pdb.set_trace()
   return (tf(word,document) * idf(word,documentList))
 
+def dot(v1, v2):
+    # vector v is of the form v["term"] = value, where value is the
+    # result of calculating tf-idf of "term" in the document list.
+    terms = set(v1.keys() + v2.keys())
+    result = 0
+    for term in terms:
+        a = v1[term] if v1.has_key(term) else 0
+        b = v2[term] if v2.has_key(term) else 0
+        result = result + a * b
+    return result
+
+def norm(v):
+    values = v.values()
+    result = 0
+    for q in values:
+        result = result + q*q
+    return math.sqrt(result)
+
+def cosine(v1, v2):
+    return dot(v1, v2) / (norm(v1) * norm(v2))
+
+def similarity(v, index):
+    result = []
+    for w in index:
+        result.append(cosine(v, w))
+    return result
+
 if __name__ == '__main__':
-  documentList = []
-  documentList.append("""DOCUMENT #1 TEXT""")
-  documentList.append("""DOCUMENT #2 TEXT""")
-  documentList.append("""DOCUMENT #3 TEXT""")
-  words = {}
-  documentNumber = 0
-  for word in documentList[documentNumber].split(None):
-    words[word] = tfidf(word,documentList[documentNumber],documentList)
-  for item in sorted(words.items(), key=itemgetter(1), reverse=True):
-    print "%f <= %s" % (item[1], item[0])
+    documentList = []
+    path = "docs"
+    files = [ fname for fname in listdir(path) if isfile(join(path, fname)) ]
+    for fname in files:
+        with open(join(path, fname), "r") as f:
+            documentList.append(f.read())
+
+    # build index
+    index = []
+    for document in documentList:
+        terms = {}
+        for term in document.split(None):
+            terms[term] = tfidf(term, document, documentList)
+        index.append(terms)
+
+    query = "DOCUMENT #1 a TEXT"
+
+    q = {}
+    for term in query.split(None):
+        q[term] = tfidf(term, query, documentList)
+
+    print(similarity(q, index))
+
+    v = index[0]
+    print(similarity(v, index))
